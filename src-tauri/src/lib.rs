@@ -157,6 +157,26 @@ fn rename_workspace(
 }
 
 #[tauri::command]
+fn pull_from_cloud(app: tauri::AppHandle) -> Result<(), String> {
+    let app_clone = app.clone();
+    std::thread::spawn(move || {
+        let result = vault::pull_from_cloud();
+        let event = match result {
+            Ok(msg) => SyncEvent {
+                success: true,
+                message: msg,
+            },
+            Err(e) => SyncEvent {
+                success: false,
+                message: e.to_string(),
+            },
+        };
+        let _ = app_clone.emit("sync-result", event);
+    });
+    Ok(())
+}
+
+#[tauri::command]
 fn sync_workspace_to_cloud(
     app: tauri::AppHandle,
     state: tauri::State<'_, Mutex<VaultState>>,
@@ -203,6 +223,7 @@ pub fn run() {
             save_vault_data,
             sync_workspace_to_cloud,
             rename_workspace,
+            pull_from_cloud,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

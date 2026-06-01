@@ -247,6 +247,28 @@ pub fn rename_workspace(old_name: &str, new_name: &str) -> Result<(), VaultError
     Ok(())
 }
 
+pub fn pull_from_cloud() -> Result<String, VaultError> {
+    let workspaces_dir = get_workspaces_dir();
+    std::fs::create_dir_all(&workspaces_dir)?;
+
+    let local_str = workspaces_dir.to_string_lossy().to_string();
+    let remote = "gdrive:VaultCat_Backups/".to_string();
+
+    let output = std::process::Command::new("rclone")
+        .arg("copy")
+        .arg(&remote)
+        .arg(&local_str)
+        .output()
+        .map_err(|e| VaultError::Crypto(format!("Failed to execute rclone: {}", e)))?;
+
+    if output.status.success() {
+        Ok("Pull completed successfully".into())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        Err(VaultError::Crypto(format!("rclone pull failed: {}", stderr)))
+    }
+}
+
 pub fn sync_to_cloud(name: &str) -> Result<String, VaultError> {
     let local_path = workspace_vault_path(name);
     if !local_path.exists() {

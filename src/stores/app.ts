@@ -16,6 +16,7 @@ interface AppStore {
   unlock: (pw: string) => Promise<void>;
   lock: () => Promise<void>;
   syncToCloud: () => Promise<void>;
+  pullFromCloud: () => Promise<void>;
   clearError: () => void;
   init: () => Promise<void>;
 }
@@ -52,6 +53,16 @@ export const useApp = create<AppStore>((set) => ({
     set({ syncing: true, syncStatus: "Syncing...", error: null });
     try {
       await invoke("sync_workspace_to_cloud");
+    } catch (e) {
+      set({ error: String(e), syncing: false, syncStatus: null });
+      setTimeout(() => set({ error: null }), 4000);
+    }
+  },
+
+  pullFromCloud: async () => {
+    set({ syncing: true, syncStatus: "Pulling from Google Drive...", error: null });
+    try {
+      await invoke("pull_from_cloud");
     } catch (e) {
       set({ error: String(e), syncing: false, syncStatus: null });
       setTimeout(() => set({ error: null }), 4000);
